@@ -12,6 +12,14 @@ class unique_queue
     std::queue<T> m_container;
     std::mutex m_mutex;
     public:
+
+      unique_queue() = default;
+      unique_queue(const std::initializer_list<T> l)
+      {
+          for(const auto &i: l)
+              push(i);
+      }
+      //
       void push(const T& v)
       {
           std::lock_guard<std::mutex> lock(m_mutex);
@@ -47,6 +55,12 @@ class unique_queue
           std::lock_guard<std::mutex> lock(m_mutex);
           return m_container.back();
       }
+      template< class... Args >
+      void emplace( Args&&... args )
+      {
+          std::lock_guard<std::mutex> lock(m_mutex);
+          return m_container.emplace(args...);
+      }
 
 };
 
@@ -62,8 +76,10 @@ void print_queue(T &queue)
 }
 int main()
 {
+    //******//
     unique_queue<int> uq;
-    //
+
+    //на выходе должны получить последовательность 1..28 без повторений
     std::thread t1([&uq]{
         for(auto &i : {1,3,5,7,9,10,11,12,13,14,15,16,17,18,19,21,23,25,27})
             uq.push(i);
@@ -78,6 +94,20 @@ int main()
     //
     t1.join();
     t2.join();
-    print_queue<unique_queue<int>>(uq);
+    print_queue(uq);
+
+    //****// // должна быть выведена последовательность 1..15 без повторов и пропусков
+    unique_queue<int> uq2({1,2,3,4,5,6,7,8,9,10,11,12,13,14,15});
+
+    std::thread t3([&uq2]{
+        print_queue(uq2);
+    });
+
+    std::thread t4([&uq2]{
+        print_queue(uq2);
+    });
+    t3.join();
+    t4.join();
+
     return 0;
 }
